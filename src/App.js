@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import TextField from "@mui/material/TextField";
@@ -22,16 +22,33 @@ import axios from "axios";
 const defaultTheme = createTheme();
 
 function App() {
-  const [personName, setPersonName] = React.useState([]);
-  const [countryName, setCountryName] = React.useState([]);
-  const [email, setEmail] = React.useState("");
-  const [emailError, setEmailError] = React.useState(false);
-  const [open, setOpen] = React.useState(false);
-  const [message, setMessage] = React.useState("");
+  const [userType, setUserType] = useState("");
+  const [countryName, setCountryName] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    userName: "",
+    password: "",
+  });
 
   const handleChange = (event) => {
-    setPersonName(event.target.value);
+    const { name, value } = event.target;
+    setFormData((prevState) => ({ ...prevState, [name]: value }));
   };
+  console.log(formData, "formData");
+  const isFormComplete =
+    userType &&
+    formData.firstName &&
+    formData.lastName &&
+    formData.userName &&
+    email &&
+    formData.password &&
+    countryName;
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -42,17 +59,21 @@ function App() {
     }
   };
 
+  const handleUserTypeChange = (event) => {
+    setUserType(event.target.value);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const signUpData = {
-      user_type: personName,
+      user_type: userType,
       first_name: data.get("firstName"),
       last_name: data.get("lastName"),
       username: data.get("userName"),
       email: email,
       password: data.get("password"),
-      country: countryName,
+      country: countryName.label,
     };
 
     const headers = {
@@ -65,13 +86,18 @@ function App() {
         headers: headers,
       })
       .then((response) => {
-        console.log("response", response);
-        setOpen(true);
-        setMessage(response.data.message);
-        setTimeout(() => setOpen(false), 5000);
+        if (response.status === 200) {
+          setOpen(true);
+          setMessage(response.data.message);
+          setTimeout(() => setOpen(false), 5000);
+          localStorage.setItem("accessToken", response.accessToken);
+        } else {
+          setOpen(true);
+          setMessage("Some error ocurred");
+          setTimeout(() => setOpen(false), 5000);
+        }
       })
       .catch((error) => {
-        console.log("error", error);
         setOpen(true);
         setMessage(error.message);
         setTimeout(() => setOpen(false), 5000);
@@ -82,7 +108,7 @@ function App() {
   };
 
   const handleClear = (event) => {
-    setPersonName("");
+    setUserType("");
     setCountryName("");
   };
 
@@ -137,9 +163,10 @@ function App() {
                     <Select
                       labelId="user-type"
                       id="userType"
-                      value={personName}
+                      value={userType}
                       label="User Type"
-                      onChange={handleChange}
+                      name="userType"
+                      onChange={handleUserTypeChange}
                     >
                       <MenuItem value="researcher">researcher</MenuItem>
                       <MenuItem value="investor">investor</MenuItem>
@@ -160,6 +187,7 @@ function App() {
                     fullWidth
                     id="firstName"
                     label="First Name"
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -170,6 +198,7 @@ function App() {
                     label="Last Name"
                     name="lastName"
                     autoComplete="family-name"
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -180,6 +209,7 @@ function App() {
                     label="User Name"
                     name="userName"
                     autoComplete="user-name"
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -207,6 +237,7 @@ function App() {
                     type="password"
                     id="password"
                     autoComplete="new-password"
+                    onChange={handleChange}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -234,6 +265,7 @@ function App() {
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
+                disabled={!isFormComplete}
               >
                 Sign Up
               </Button>
